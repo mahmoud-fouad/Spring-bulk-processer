@@ -1,0 +1,32 @@
+spring:
+  batch:
+    job:
+      enabled: false #to stop the running job automaticlly
+      intialize-schema: always #create batch process tables
+  h2:
+    console:
+      enabled: true
+  data:
+    jpa:
+      repositories:
+        bootstrap-mode: default
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    defer-datasource-initialization: true
+    hibernate:
+      ddl-auto: update
+      properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testbatch
+    username: sa
+    password: 
+ 
+sechdule:
+  cron-expression: 0 14 16 * * *
+  interval: 60000
+  page-size: 5 # for paging in jpa
+  chunk-size: 5 #the batch chunk size
+  after-chunk-wait-time: 30000 #interval of the schedular
