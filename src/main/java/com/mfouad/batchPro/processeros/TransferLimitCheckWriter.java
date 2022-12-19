@@ -25,7 +25,7 @@ public class TransferLimitCheckWriter extends RepositoryItemWriter<Transfer> {
 		log.info("in "+this.getClass()+".wite------------------------");
 		
 		transfers.forEach(transfer -> log.info("transfer after processing {}", transfer) );
-		
+		super.write(transfers);
 	}
 
 }
