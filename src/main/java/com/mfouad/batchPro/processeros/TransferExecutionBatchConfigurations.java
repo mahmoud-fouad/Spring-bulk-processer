@@ -33,6 +33,7 @@ import com.mfouad.batchPro.listeners.CustomChunkListener;
 import com.mfouad.batchPro.listeners.JobCompletionListener;
 import com.mfouad.batchPro.listeners.TransferJobCompletionListener;
 import com.mfouad.batchPro.repos.TransferRepo;
+import com.mfouad.batchPro.services.ITransferService;
 
 
 @Component
@@ -52,10 +53,12 @@ public class TransferExecutionBatchConfigurations {
 	private SchedularConfig schedularConfig;
 
 	@Bean
-	public Job processJob(JobCompletionListener listener,@Qualifier("checkTransferLimit") Step checkTransferLimit , @Qualifier("checkTransferMoneyLundary") Step checkTransferMoneyLundary ) throws Exception {
+	public Job processJob(JobCompletionListener listener,@Qualifier("checkTransferLimit") Step checkTransferLimit 
+			, @Qualifier("checkTransferMoneyLundary") Step checkTransferMoneyLundary
+			, @Qualifier("transferSubmission") Step transferSubmission ) throws Exception {
 
 		return this.jobBuilderFactory.get("processJob").incrementer(new RunIdIncrementer()).listener(listener)
-				.start(checkTransferLimit).next(checkTransferMoneyLundary).build();
+				.start(checkTransferLimit).next(checkTransferMoneyLundary).next(transferSubmission).build();
 	}
 	
 	
@@ -66,9 +69,8 @@ public class TransferExecutionBatchConfigurations {
 						.<Transfer, Transfer> chunk(schedularConfig.getChunkSize())				
 						.reader(checkTransferLimitReader)
 						.processor(TransferLimitCheckProcessor())
-						//.writer(itemWriter())
 						.writer(transferLimitWriter())					
-						.listener(chunkListener()).build();
+						.build();
 		}
 		
 		@Bean(name="checkTransferMoneyLundary")
@@ -77,9 +79,18 @@ public class TransferExecutionBatchConfigurations {
 						.<Transfer, Transfer> chunk(schedularConfig.getChunkSize())				
 						.reader(checkTransferMoneyLundaryReader)
 						.processor(TransferMoneylaunderyProcessor())
-						//.writer(itemWriter())
 						.writer(transferMoneyLauderyWriter())					
-						.listener(chunkListener()).build();
+						.build();
+		}
+		
+		@Bean(name="transferSubmission")
+		public Step transferSubmission(ItemReader<Transfer> transferSubmissionReader) {
+				return stepBuilderFactory.get("transferSubmission")
+						.<Transfer, Transfer> chunk(schedularConfig.getChunkSize())				
+						.reader(transferSubmissionReader)
+						.processor(transferSubmittionProcessor())
+						.writer(transferLimitWriter())					
+						.build();
 		}
 		
 		// You should sepcify the method which  
@@ -127,6 +138,26 @@ public class TransferExecutionBatchConfigurations {
 
 	        return reader;
 	    }
+		
+		@StepScope
+		@Bean(name="transferSubmissionReader")
+	    public RepositoryItemReader<Transfer> transferSubmissionReader() {
+	        RepositoryItemReader<Transfer> reader = new RepositoryItemReader<>();
+	        
+	        reader.setRepository(transferRepo);
+	        reader.setMethodName("getLimitCheckPassedTransfers");
+	      
+	        List<Object> queryMethodArguments = new ArrayList<>();
+	        queryMethodArguments.add(TransferStatus.limitCheckPassed);
+	        reader.setArguments(queryMethodArguments);
+	        
+	        reader.setPageSize(schedularConfig.getPageSize());
+	        Map<String, Direction> sorts = new HashMap<>();        
+	        sorts.put("id", Direction.ASC);//https://stackoverflow.com/questions/31691470/ora-01791-not-a-selected-expression
+	        reader.setSort(sorts);
+
+	        return reader;
+	    }
 		 
 		@Bean
 	    public TransferLimitCheckProcessor TransferLimitCheckProcessor()
@@ -138,6 +169,15 @@ public class TransferExecutionBatchConfigurations {
 	    public TransferMoneylaunderyProcessor TransferMoneylaunderyProcessor()
 	    {
 	        return new TransferMoneylaunderyProcessor();
+	    }
+		
+		@Autowired
+		ITransferService transferService;
+		
+		@Bean(name="transferSubmittionProcessor")
+	    public TransferSubmittionProcessor transferSubmittionProcessor()
+	    {
+	        return new TransferSubmittionProcessor(transferService);
 	    }
 		
 		@Bean
@@ -154,11 +194,6 @@ public class TransferExecutionBatchConfigurations {
 		public JobExecutionListener listener() {
 			return new TransferJobCompletionListener();
 		}
-		@Bean
-	    public CustomChunkListener chunkListener()
-	    {
-	        return new CustomChunkListener();
-	    }
 //		@Bean
 //	    public RepositoryItemWriter<Transfer> repositoryItemWriter() {
 //	        RepositoryItemWriter<Transfer> iwriter = new RepositoryItemWriter<>();       

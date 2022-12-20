@@ -1,7 +1,6 @@
 package com.mfouad.batchPro.repos;
 
 import java.util.Date;
-import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,5 +17,8 @@ public interface TransferRepo extends JpaRepository<Transfer, Long> {
 	
 	@Query("select t from Transfer t where  t.executionDate >= :exDate and t.status = :status")
 	Page<Transfer> getTransferByExecutionDate(@Param("exDate") Date date,@Param("status")TransferStatus status,  Pageable pageable );
+	
+	@Query("select t from Transfer t where  t.status = :status")
+	Page<Transfer> getLimitCheckPassedTransfers(@Param("status")TransferStatus status,  Pageable pageable );
 	
 }
