@@ -29,7 +29,6 @@ import org.springframework.stereotype.Component;
 import com.mfouad.batchPro.SchedularConfig;
 import com.mfouad.batchPro.entities.Transfer;
 import com.mfouad.batchPro.entities.TransferStatus;
-import com.mfouad.batchPro.listeners.CustomChunkListener;
 import com.mfouad.batchPro.listeners.JobCompletionListener;
 import com.mfouad.batchPro.listeners.TransferJobCompletionListener;
 import com.mfouad.batchPro.repos.TransferRepo;
